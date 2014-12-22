@@ -2,6 +2,7 @@ var TTPP = function(){
     var _this = this;
     _this.players = {};
     _this.bulletTime = 0;
+    _this.knifeTime = 0;
 
 
     _this.init = function(){
@@ -27,6 +28,7 @@ var TTPP = function(){
         _this.game.load.image('sand','assets/background/sand.png');
         _this.game.load.image('earth','assets/background/earth.png');
         _this.game.load.image('bullet','assets/bullet_black.png');
+        _this.game.load.image('knife','assets/knife.png');
 
         /**
          * Players sprites
@@ -48,6 +50,7 @@ var TTPP = function(){
 
 
         _this.createBullets();
+        _this.createKnifes();
         _this.buildControls();
     }
 
@@ -121,7 +124,7 @@ var TTPP = function(){
             //_this.player.frame = 1;
         }
         if(_this.fireKey.isDown){
-            _this.fireBullets(_this.player);
+            _this.fireKnifes(_this.player);
         }
 
     }
@@ -129,6 +132,7 @@ var TTPP = function(){
     _this.processActions = function(){
         //  Reset the players velocity (movement)
         _this.player.body.velocity.x = 0;
+        _this.player.body.velocity.y = 0;
 
         _this.arrowControls();
         _this.aswdControls();
@@ -213,6 +217,20 @@ var TTPP = function(){
         _this.bullets.setAll('checkWorldBounds', true);
     }
 
+    _this.createKnifes = function(){
+        //  Our bullet group
+        _this.knifes = _this.game.add.group();
+        _this.knifes.enableBody = true;
+        _this.knifes.physicsBodyType = Phaser.Physics.ARCADE;
+        _this.knifes.createMultiple(30, 'knife', 0, false);
+        _this.knifes.setAll('anchor.x', 0.5);
+        _this.knifes.setAll('anchor.y', 0.5);
+        _this.knifes.setAll('outOfBoundsKill', true);
+        _this.knifes.setAll('checkWorldBounds', true);
+    }
+
+
+
     _this.fireBullets = function (player) {
         console.log('fire bullets');
         //  To avoid them being allowed to fire too fast we set a time limit
@@ -229,7 +247,23 @@ var TTPP = function(){
                 _this.bulletTime = _this.game.time.now + 300;
             }
         }
+    }
+    _this.fireKnifes = function (player) {
+        console.log('fire knife');
+        //  To avoid them being allowed to fire too fast we set a time limit
+        if (_this.game.time.now > _this.knifeTime)
+        {
+            //  Grab the first bullet we can from the pool
+           _this.knife = _this.knifes.getFirstExists(false);
 
+            if (_this.knife)
+            {
+                //  And fire it
+                _this.knife.reset(player.x+54, player.y+30);
+                _this.knife.body.velocity.y = -250;
+                _this.knifeTime = _this.game.time.now + 300;
+            }
+        }
     }
 
 }
