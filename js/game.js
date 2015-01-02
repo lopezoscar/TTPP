@@ -4,6 +4,10 @@ var TTPP = function(){
     _this.bulletTime = 0;
     _this.knifeTime = 0;
 
+    _this.DEFAULT_LIFE = 100;
+    _this.BULLET_IMPACT = 10;
+    _this.KNIFE_IMPACT = 7;
+
 
     _this.init = function(){
         _this.heigth = 640;
@@ -45,8 +49,8 @@ var TTPP = function(){
     _this.create = function(){
         _this.buildWorld();
 
-        _this.createPlayer('knife','player3',_this.arrowControls);
-        _this.createPlayer('shooter','player3',_this.aswdControls);
+        _this.createPlayer('knife','player3',_this.arrowControls,0,{x:768-150,y:_this.heigth-50});
+        _this.createPlayer('shooter','player3',_this.aswdControls,_this.heigth,{x:0,y:0});
 
 
         _this.createBullets();
@@ -61,6 +65,7 @@ var TTPP = function(){
 
     _this.arrowControls = function(){
         _this.player = _this.players['knife'];
+
 
         if (_this.cursors.left.isDown) {
             //  Move to the left
@@ -88,9 +93,10 @@ var TTPP = function(){
             //_this.player.frame = 1;
         }
 
+        //Enter Key
         if(_this.cursors.fireKey.isDown){
             //console.log('fire knifes');
-            _this.fireBullets(_this.player);
+            _this.fireKnifes(_this.player);
         }
     }
 
@@ -124,7 +130,7 @@ var TTPP = function(){
             //_this.player.frame = 1;
         }
         if(_this.fireKey.isDown){
-            _this.fireKnifes(_this.player);
+            _this.fireBullets(_this.player);
         }
 
     }
@@ -134,6 +140,13 @@ var TTPP = function(){
         _this.player.body.velocity.x = 0;
         _this.player.body.velocity.y = 0;
 
+
+        /**
+         * Checks
+         */
+        _this.checkOverlap(_this.players['knife'],_this.bullet);
+        _this.checkOverlap(_this.players['shooter'],_this.knifes);
+
         _this.arrowControls();
         _this.aswdControls();
 
@@ -142,7 +155,8 @@ var TTPP = function(){
         //{
         //    _this.player.body.velocity.y = -350;
         //}
-    }
+
+    };
 
     _this.buildBackgroundRow = function(y,element){
         var itemsByWidth =_this.width / 128;
@@ -171,9 +185,13 @@ var TTPP = function(){
 
     }
 
-    _this.createPlayer = function(name,asset,controlsFunction){
-        _this.player = _this.game.add.sprite(_this.width / 2,0,asset);
+    _this.createPlayer = function(name,asset,controlsFunction,height,lifeTextPosition){
+        _this.player = _this.game.add.sprite(_this.width / 2,height,asset);
         _this.game.physics.arcade.enable(_this.player);
+
+        _this.player.life = _this.DEFAULT_LIFE;
+        _this.player.lifeTextPosition = lifeTextPosition;
+        _this.player.name = name;
 
         //  Player physics properties. Give the little guy a slight bounce.
         //Cuando se agrega Physics, el objeto obtiene la propiedad body para modificar parametros de physics
@@ -210,11 +228,12 @@ var TTPP = function(){
         _this.bullets = _this.game.add.group();
         _this.bullets.enableBody = true;
         _this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
-        _this.bullets.createMultiple(30, 'bullet', 0, false);
+        _this.bullets.createMultiple(1, 'bullet', 0, false);
         _this.bullets.setAll('anchor.x', 0.5);
         _this.bullets.setAll('anchor.y', 0.5);
         _this.bullets.setAll('outOfBoundsKill', true);
         _this.bullets.setAll('checkWorldBounds', true);
+
     }
 
     _this.createKnifes = function(){
@@ -222,7 +241,7 @@ var TTPP = function(){
         _this.knifes = _this.game.add.group();
         _this.knifes.enableBody = true;
         _this.knifes.physicsBodyType = Phaser.Physics.ARCADE;
-        _this.knifes.createMultiple(30, 'knife', 0, false);
+        _this.knifes.createMultiple(1, 'knife', 0, false);
         _this.knifes.setAll('anchor.x', 0.5);
         _this.knifes.setAll('anchor.y', 0.5);
         _this.knifes.setAll('outOfBoundsKill', true);
@@ -232,9 +251,8 @@ var TTPP = function(){
 
 
     _this.fireBullets = function (player) {
-        console.log('fire bullets');
         //  To avoid them being allowed to fire too fast we set a time limit
-        if (_this.game.time.now > _this.bulletTime)
+        if (_this.game.time.now > _this.bulletTime && player.life > 0)
         {
             //  Grab the first bullet we can from the pool
            _this.bullet = _this.bullets.getFirstExists(false);
@@ -243,13 +261,18 @@ var TTPP = function(){
             {
                 //  And fire it
                 _this.bullet.reset(player.x+54, player.y+30);
-                _this.bullet.body.velocity.y = -150;
+
+                var toGrados = player.body.angle *(180/Math.PI);
+
+                _this.game.physics.arcade.velocityFromAngle(toGrados,200,_this.bullet.body.velocity);
+
+                //_this.bullet.body.velocity.y = 150;
+
                 _this.bulletTime = _this.game.time.now + 300;
             }
         }
-    }
+    };
     _this.fireKnifes = function (player) {
-        console.log('fire knife');
         //  To avoid them being allowed to fire too fast we set a time limit
         if (_this.game.time.now > _this.knifeTime)
         {
@@ -260,13 +283,57 @@ var TTPP = function(){
             {
                 //  And fire it
                 _this.knife.reset(player.x+54, player.y+30);
-                _this.knife.body.velocity.y = -250;
+
+                var toGrados = player.body.angle *(180/Math.PI);
+
+                //_this.knife.body.velocity.y = -250;
+                _this.game.physics.arcade.velocityFromAngle(toGrados,400,_this.knife.body.velocity);
+
                 _this.knifeTime = _this.game.time.now + 300;
             }
         }
-    }
+    };
 
-}
+    _this.checkOverlap = function(player,bullet){
+        /**
+         * This tells Phaser to check for an overlap between the player and any star in the stars Group. If found then pass them to the ‘collectStar’ function:
+         * Checkea overlap entre la estrella y el player
+         */
+
+        /**
+         * objetos a overlapearse y funcion a ejecutar
+         */
+        if(player && bullet)
+        _this.game.physics.arcade.overlap(player,bullet, _this.removeLife, null, this);
+    };
+
+    _this.removeLife = function(player,bullet){
+        bullet.kill();
+        if(player.life - _this.BULLET_IMPACT  <= 0){
+            player.kill();
+        }else{
+            console.log('life --',player.life);
+            player.life-= _this.BULLET_IMPACT;
+        }
+
+        var text = player.name+ " Life: "+player.life;
+        _this.render(text,player,player.lifeTextPosition);
+    };
+
+    _this.render = function(text,player,position) {
+        if(player.lifeText){
+            player.lifeText
+        }
+        player.lifeText = _this.addText(text,position);
+    };
+
+    _this.addText = function(text,position){
+        var style = { font: "20px Arial", fill: "#008CF7", align: "center" };
+        return _this.game.add.text(position.x, position.y, text, style);
+    }
+};
+
+
 
 new TTPP().init();
 
